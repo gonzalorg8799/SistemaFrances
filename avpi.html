@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Préstamo - Sistema Francés</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #eef2f3;
+            padding: 30px;
+        }
+
+        .caja-principal {
+            width: 800px;
+            margin: auto;
+            background: #ffffff;
+            padding: 20px;
+            border: 2px solid #333; 
+        }
+
+        h1, h2 {
+            text-align: center;
+            color: #003366;
+        }
+
+        .formulario {
+            background: #f9f9f9;
+            padding: 15px;
+            border: 1px solid #ccc;
+            margin-bottom: 20px;
+        }
+
+        .grupo-input {
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+
+        .grupo-input label {
+            width: 250px;
+            float: left;
+            font-weight: bold;
+        }
+
+        .grupo-input input, .grupo-input select {
+            width: 200px;
+        }
+
+        .boton-zona {
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        .btn {
+            padding: 10px 30px;
+            background: #003366;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .cuadro-resumen {
+            border: 1px solid #003366;
+            padding: 15px;
+            margin-top: 20px;
+            background: #e6f2ff;
+        }
+
+        .dato-final {
+            margin: 5px 0;
+            font-size: 1.1em;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        table, th, td {
+            border: 1px solid #666;
+        }
+
+        th {
+            background: #003366;
+            color: white;
+            padding: 8px;
+        }
+
+        td {
+            padding: 5px;
+            text-align: right;
+        }
+    </style>   
+</head>
+<body>
+
+    <div class="contenedor">
+        <h1>Simulador Financiero</h1>
+        <p class="subtitulo">Cálculo de préstamo por Sistema Francés</p>
+
+        <div class="seccion-entrada">
+            <div class="campo">
+                <label>Nominal del préstamo (€)</label>
+                <input type="number" id="nominal" min="100000" max="200000" value="150000">
+            </div>
+            <div class="campo">
+                <label>Plazo (años)</label>
+                <input type="number" id="duracion" min="1" max="30" value="20">
+            </div>
+            <div class="campo">
+                <label>Euríbor actual (%)</label>
+                <input type="number" id="euribor" step="0.001" value="3.5">
+            </div>
+            <div class="campo">
+                <label>Periodicidad de pago</label>
+                <select id="periodicidad">
+                    <option value="mensual">Mensual</option>
+                    <option value="trimestral">Trimestral</option>
+                    <option value="semestral">Semestral</option>
+                    <option value="anual">Anual</option>
+                </select>
+            </div>
+            <div class="campo">
+                <label>Tipo de interés pactado</label>
+                <select id="tipo">
+                    <option value="fijo">Fijo (Diferencial +1,0%)</option>
+                    <option value="variable">Variable (Diferencial +0,5%)</option>
+                </select>
+            </div>
+            <div class="campo">
+                <label>Bonificación aplicada (%)</label>
+                <input type="number" id="bonificacion" step="0.01" value="0.20">
+            </div>
+            <button class="boton-calcular" onclick="ejecutarSimulacion()">CALCULAR PRÉSTAMO</button>
+        </div>
+
+        <div class="resumen">
+            <div class="tarjeta-resultado">
+                <span>TIN Anual</span>
+                <strong id="res-tin">--</strong>
+            </div>
+            <div class="tarjeta-resultado resaltado">
+                <span>Cuota Periódica</span>
+                <strong id="res-cuota">--</strong>
+            </div>
+            <div class="tarjeta-resultado">
+                <span>TAE (Coste Efectivo)</span>
+                <strong id="res-tae">--</strong>
+            </div>
+        </div>
+
+        <div class="contenedor-tabla">
+            <div id="salida-tabla">
+                <p class="texto-vacio">Introduce los datos y pulsa calcular para generar el cuadro.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* cálculos */
+
+        function ejecutarSimulacion() {
+            // Coger los datos del formulario
+            var dinero = parseFloat(document.getElementById('nominal').value);
+            var tiempoAnos = parseInt(document.getElementById('duracion').value);
+            var valorEuribor = parseFloat(document.getElementById('euribor').value) / 100;
+            var descuento = parseFloat(document.getElementById('bonificacion').value) / 100;
+            var queTipo = document.getElementById('tipo').value;
+            var cadaCuanto = document.getElementById('periodicidad').value;
+
+            // Validacion rapida para que no se pase de los limites del trabajo
+            if (dinero < 100000 || dinero > 200000 || tiempoAnos > 30) {
+                alert("Ojo: El capital debe estar entre 100k y 200k, y maximo 30 años.");
+                return;
+            }
+
+            // Calculo del TIN segun si es fijo o variable
+            var dif = (queTipo === 'fijo') ? 0.01 : 0.005;
+            var tinAnual = (valorEuribor + dif) - descuento;
+            if (tinAnual < 0) tinAnual = 0; // Por si sale negativo
+
+            // Ajustar segun meses, trimestres...
+            var pagosAlAno = 12; 
+            if (cadaCuanto === 'trimestral') pagosAlAno = 4;
+            if (cadaCuanto === 'semestral') pagosAlAno = 2;
+            if (cadaCuanto === 'anual') pagosAlAno = 1;
+
+            var numCuotas = tiempoAnos * pagosAlAno;
+            var interesTramo = tinAnual / pagosAlAno;
+
+            // Formula del sistema frances para la cuota
+            var mensualidad = (dinero * interesTramo) / (1 - Math.pow(1 + interesTramo, -numCuotas));
+
+            // Calculo del Coste Efectivo (TAE) 
+            // considerando los gastos de estudio (150€) y admin (1 por mil)
+            var gastosFijos = 150;
+            var gastoAdminCuota = dinero * 0.001;
+            var cuotaReal = mensualidad + gastoAdminCuota;
+    
+            // Aproximacion de la TAE
+                var taeEstimada = ((cuotaReal * numCuotas) - (dinero - gastosFijos)) / (dinero - gastosFijos) / tiempoAnos * 100;
+
+            // Meter los resultados en los span del HTML
+            document.getElementById('res-tin').innerHTML = (tinAnual * 100).toFixed(2) + "%";
+            document.getElementById('res-cuota').innerHTML = mensualidad.toFixed(2) + " €";
+            document.getElementById('res-tae').innerHTML = taeEstimada.toFixed(2) + "%";
+
+            // Generar la tabla de amortizacion (forma manual)
+            var tablaFinal = '<table border="1"><thead><tr><th>Mes</th><th>Cuota</th><th>Interes</th><th>Principal</th><th>Pendiente</th></tr></thead><tbody>';
+            var restante = dinero;
+
+            for (var i = 1; i <= numCuotas; i++) {
+                var pagoInteres = restante * interesTramo;
+                var pagoCapital = mensualidad - pagoInteres;
+                restante = restante - pagoCapital;
+
+                // Concatenacion tradicional de strings
+                tablaFinal += '<tr>';
+                tablaFinal += '<td>' + i + '</td>';
+                tablaFinal += '<td>' + mensualidad.toFixed(2) + '</td>';
+                tablaFinal += '<td>' + pagoInteres.toFixed(2) + '</td>';
+                tablaFinal += '<td>' + pagoCapital.toFixed(2) + '</td>';
+                tablaFinal += '<td>' + Math.abs(restante).toFixed(2) + '</td>';
+                tablaFinal += '</tr>';
+            }
+    
+            tablaFinal += '</tbody></table>';
+            document.getElementById('salida-tabla').innerHTML = tablaFinal;
+        }
+    </script>
+</body>
+</html>
